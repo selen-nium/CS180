@@ -3,9 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Project 0</title>
+    <link rel="stylesheet" href="index.css">
+    <link href='https://fonts.googleapis.com/css?family=Montserrat' rel='stylesheet'>
 </head>
 <body>
-    <p>project 0 content to be added</p>
+    <!-- hero -->
+    <div class="heroSection">
+        <img class="heroBg" src="./media/bg4.jpg" alt="a picture of some maple leaves I took on my Ricoh CX3"/>
+        <div class="introduction">
+            <h1>Project 0 - Becoming Friends with Your Camera</h1>
+            <p>2 Sep 2025</p>
+        </div>
+    </div>
+
+    <!-- quick nav bar -->
+    <div class="navBar">
+        <ul style="list-style-type: none;">
+            <li><a href="#p1">Part 1</a></li>
+            <li> | </li>
+            <li><a href="#p2">Part 2</a></li>
+            <li> | </li>
+            <li><a href="#p3">Part 3</a></li>
+        </ul>
+    </div>
+
+    <!-- key content parts -->
+    <div class="content">
+        <div id="p1" class="p1">
+            <h2>Part 1 - Selfie: The Wrong Way vs. The Right Way</h2>
+            <p class="description">
+                Take a picture of your friend (or yourself) from close up. You get a typical distorted selfie image. Now step back several feet from your subject, zoom in, and take a second picture. Try to get the face in the second photo to be the same size as in the first photo. If you've done things right, the second portrait should look much better than the first one. <b>Think about why this is.</b>
+            </p>
+            <div class="imageSection part1">
+                <div class="c">
+                    <img src="./media/test1.jpeg" alt="close up shot"/>
+                    <p>^looks distorted..</p>
+                </div>
+                <div class="c">
+                    <img src="./media/test2.jpeg" alt="zoomed in shot"/>
+                </div>
+                <div class="c">
+                    <img src="./media/test2.jpeg" alt="zoomed in shot"/>
+                </div>
+                <div class="c">
+                    <img src="./media/test2.jpeg" alt="zoomed in shot"/>
+                </div>
+                <div class="c">
+                    <img src="./media/test2.jpeg" alt="zoomed in shot"/>
+                    <p>^looks much better!</p>
+                </div>
+            </div>
+            <p>The close up photo exagerates certain facial features thats near the lens(nose, etc), which makes the face looks distorted and unnatural. When we step back and zoom in, the face will look more proportionate.</p>
+        </div>
+
+        <hr>
+
+        <div id="p2" class="p2">
+            <h2>Part 2 - Architectural Perspective Compression</h2>
+            <p class="description">
+                Let's repeat the same procedure in reverse, for an urban scene. Pick a nice view down a long street (or a walking path on campus), zoom in, and take a photo. Now, walk down the street in the direction of your first shot, and take a second photo without zoom, such that the scene in the two photos appears approximately the same size. The first picture should look flattened, or compressed, compared to the second. Again, think about why.
+            </p>
+            <div class="imageSection part2">
+                <div class="row imgLeft">
+                    <img src="./media/test2.jpeg" alt="zoomed in shot"/>
+                    <p>some description...</p>
+                </div>
+                <div class=" row imgRight">
+                    <p>some description...</p>
+                    <img src="./media/test2.jpeg" alt="zoomed in shot"/>
+                </div>
+            </div>
+            <p>some thoughts...</p>
+        </div>
+
+        <hr>
+
+        <div id="p3" class="p3">
+            <h2>Part 3 - The Dolly Zoom</h2>
+            <p class="description">
+                In this part, we will be duplicating a classic film effect called the dolly zoom. It is a camera movement also known as the "Vertigo shot", after a famous scene in Hitchcock's Vertigo.
+            </p>
+            <div class="imageSection part3">
+                <img src="./media/part3/dolly.gif" alt="Dolly Zoom gif"/>
+                <p>a Dolly Zoom of my smiski on my desk</p>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
