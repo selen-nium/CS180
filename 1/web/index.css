@@ -1,0 +1,126 @@
+body {
+    font-family: "Poppins", sans-serif;
+    margin: 0;
+    background-color: #3c3c3c;
+    color: whitesmoke;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  a:link,
+  a:visited {
+    text-decoration: none;
+    color: white;
+  }
+  
+  .heroSection {
+    height: 70vh;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
+  .heroBg {
+    position: absolute;
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+    object-position: center 10%;
+    filter: brightness(40%);
+    z-index: 0;
+  }
+  
+  .introduction {
+    width: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    z-index: 1;
+  }
+  
+  .introduction h1 {
+    padding: 0px;
+  }
+  
+  .introduction p {
+    width: 70vw;
+    color: whitesmoke;
+  }
+  
+  .introduction a {
+    font-size: x-small;
+  }
+  
+  ul {
+    display: flex;
+    gap: 8vw;
+    justify-content: center;
+    align-items: center;
+    height: 10vh;
+  }
+  
+  ul a:hover {
+    text-decoration: underline;
+  }
+  
+  .content {
+    padding: 0 200px;
+    text-align: justify;
+  }
+  
+  .description {
+    font-size: smaller;
+  }
+  
+  .imageSection {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    justify-content: center;
+    padding: 20px 0;
+  }
+  
+  .imageSection img {
+    max-height: 60vh;
+    width: auto;
+    object-fit: contain;
+    cursor: pointer;
+  }
+  
+  .imageSection p {
+    flex: 1;
+    margin: 0;
+    line-height: 1.6;
+  }
+  
+  .image-row {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .image-card {
+    text-align: center;
+    width: 30%;
+    margin-bottom: 10px;
+  }
+  
+  .image-card img {
+    max-width: 100%;
+  }
+  
+  .image-card:hover {
+    transform: scale(1.05);
+    transition: 0.2s ease;
+  }
+  
+  hr {
+    margin: 80px 0;
+  }
+  

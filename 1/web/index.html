@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Deliverables</title>
+    <link rel="stylesheet" href="index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- hero -->
+  <div class="heroSection">
+    <img class="heroBg" src="./media/background.jpg" alt="background image for the project"/>
+    <div class="introduction">
+      <h1>Project 1 - Colorizing the Prokudin-Gorskii photo collection</h1>
+      <p>(11 Sep 2025) This project applies image alignment and colorization to the Prokudin-Gorskii collection, reconstructing RGB images from glass plate scans.</p>
+      <a href="https://unsplash.com/">Background image source: Unsplash</a>
+    </div>
+  </div>
+
+  <!-- nav bar -->
+  <div class="navBar">
+    <ul style="list-style-type: none;">
+      <li><a href="#overview">Project Overview</a></li>
+      <li> | </li>
+      <li><a href="#approach">Approach</a></li>
+      <li> | </li>
+      <li><a href="#problems">Problems Encountered</a></li>
+      <li> | </li>
+      <li><a href="#gallery">Gallery</a></li>
+    </ul>
+  </div>
+
+
+  <!-- content -->
+  <div class="content">
+    <div id="overview" class="section">
+        <h2>Project Overview</h2>
+        <p>
+            This project focuses on reconstructing colored images from the digitized glass plate images of Sergei Prokudin-Gorskii. Each plate consists of three vertically stacked grayscale exposures taken through red, green, and blue filters. To create a coherent RGB photograph, the channels must be extracted, aligned, and combined. 
+        </p>
+        <p>
+            I implemented an alignment algorithm using <b>normalized cross-correlation (NCC)</b> for similarity scoring, <b>Sobel edge detection</b> to take into consideration the brightness differences between the channels, and <b>image pyramid</b> for more efficient processing of large .tif images. I also cropped image borders to avoid misleading artifacts. This allowed me to produce clean color reconstructions for the provided examples and also additional images I chose from the collection.
+        </p>
+    </div>
+
+    <hr>
+
+    <div id="approach" class="section">
+        <h2>Detailed Approach</h2>
+      
+        <h3>1. Brute Force with NCC</h3>
+        <p>
+            At the start, my appraoch was very straightfoward - split each glass plate image into its three channels (B, G, R) from top to down, then align the green and red channels to the blue channel by searching over possible displacements.I wrote a brute-force search over a displacement window, scoring each alignment using normalized cross-correlation (NCC) This worked well for smaller .jpg images such as <em>cathedral</em> and <em>tobolsk</em>, but failed on <em>monastery</em>.
+        </p>
+
+        <div class="imageSection">
+            <img src="./media/failed/monastery.jpg" alt="Failed monstary"/> 
+            <p>As you can see, the green channel is somehow misaligned</p>
+        </div>
+      
+        <h3>2. Edge-Based Alignment with Sobel</h3>
+        <div class="imageSection">
+            <img src="./media/original/monastery.jpg" alt="original monstary" /> 
+            <p>To understand why this happened, I compared the original glassplat pictures of the 3 .jpg images, and found out that there's a visible difference in brightness in the 3 channles in <em>monastery</em>, as compared to the other 2 images. <br> <br> To fix this, I utilised the hint given in the project description and switched to comparing edge maps computed with the Sobel operato(which is apprently more beginner friendly and sufficient for most cases). Edges are more robust to brightness differences, and this immediately fixed cases like<em>monastery</em>.</p>
+        </div>
+      
+        <h3>3. Scaling Up to Large .tif Images</h3>
+        <p>
+          After successfully processing the .jpg images, I moved on to the larger .tif images. However, brute force alignment was too slow and it can take hours to process a single .tif image, so I implemented an image pyramid. The algorithm begins on small, downsampled images, then recursively refines offsets at higher resolutions. This sped up alignment dramatically, and it only took seconds to process the .tif images.
+        </p>
+      
+        <h3>4. Border Cropping</h3>
+        <div class="imageSection">
+            <img src="./media/failed/emir_colored.jpg" alt="Failed emir"/> 
+            <p>However, despite using NCC metrics and Sobel edge detection model, some .tif images were still not aligned properly.</p>
+        </div>
+        <p>
+            I then tried various methods trying to fix this, and was able to solve the issue via border cropping. Cropping out a small percentage(10%) of the borders before alignment removed the noise and made the algorithm consistently succeed on the other .tif images.
+        </p>
+    </div>
+      
+    <hr>
+
+    <div id="problems" class="section">
+        <h2>Problems Encountered</h2>
+        <p>
+            This was honestly a very hard project for me since I had close to zero experience doing image processing &#128532. The learning curve was pretty steep as I had to learn the various numpy and OpenCV operations these few days. Nonetheless, here are some key problems I've encountered:
+        </p>
+        <h4>1. Brightness difference</h4>
+        <p>
+            One of the harder parts was not the coding itself, but understanding why the alignments looked wrong even though the algorithm was working as it was intended to.  At first, the results seemed random as sometimes the green channel would line up, other times it would slide far off. After some research and comparison, I realized the issue wasn’t with the displacement search, but with the metric I was using to compare channels. Because each channel had different brightness and contrast, the algorithm was matching lighter areas in one channel to darker areas in another. I read up the project description in greater detail and found the eventual fix, which was switching to an edge-based representation(Sobel), which forced the algorithm to align on actual structure rather than raw intensity.
+        </p>
+        <h4>2. Borders affecting the metrics</h4>
+        <p>
+            Another problem came from the uneven borders around many glass plate images. The alignments were consistently off no matter how much I tuned the algorithm. After some research, I realised that the borders could be causing the misalignment, since the metrics I used will favour such high contrasts pixels and end up aligning the borders rather than the content in the image. The fix was simple though, just apply a border crop function to all images before other processing steps. If given more time, I would definitely try to implement automatic cropping.
+        </p>
+
+    </div>
+
+    <hr>
+
+    <div id="gallery" class="section">
+        <h2>Gallery</h2>
+    </div>
+      
+    <script>
+    const images = {
+        tif: [
+        {name: "church", path: "./media/tif/church_colored.jpg", g: [4, 25], r: [-4, 58]},
+        {name: "emir", path: "./media/tif/emir_colored.jpg", g: [24, 49], r: [40, 107]},
+        {name: "harvesters", path: "./media/tif/harvesters_colored.jpg", g: [17, 60], r: [14, 124]},
+        {name: "icon", path: "./media/tif/icon_colored.jpg", g: [17, 42], r: [23, 90]},
+        {name: "italil", path: "./media/tif/italil_colored.jpg", g: [22, 38], r: [36, 77]},
+        {name: "lastochikino", path: "./media/tif/lastochikino_colored.jpg", g: [-2, -3], r: [-8, 76]},
+        {name: "lugano", path: "./media/tif/lugano_colored.jpg", g: [-17, 41], r: [-29, 92]},
+        {name: "melons", path: "./media/tif/melons_colored.jpg", g: [10, 80], r: [13, 177]},
+        {name: "self_portrait", path: "./media/tif/self_portrait_colored.jpg", g: [29, 78], r: [37, 176]},
+        {name: "siren", path: "./media/tif/siren_colored.jpg", g: [-6, 49], r: [-24, 96]},
+        {name: "three_generations", path: "./media/tif/three_generations_colored.jpg", g: [12, 54], r: [9, 111]},
+        ],
+        chosen: [
+        {name: "1", path: "./media/chosen/chosen1_colored.jpg", g: [-8, 28], r: [-19, 108]},
+        {name: "2", path: "./media/chosen/chosen2_colored.jpg", g: [16, 56], r: [24, 126]},
+        {name: "3", path: "./media/chosen/chosen3_colored.jpg", g: [-11, 36], r: [-34, 100]},
+        ],
+        jpg: [
+        {name: "tobolsk", path: "./media/jpg/tobolsk_colored.jpg", g: [3, 3], r: [3, 6]},
+        {name: "cathedral", path: "./media/jpg/cathedral_colored.jpg", g: [2, 5], r: [3, 12]},
+        {name: "monastery", path: "./media/jpg/monastery_colored.jpg", g: [2, -3], r: [2, 3]},
+        ]
+    };
+    
+    function renderGallery(sectionName, data) {
+        const container = document.getElementById("gallery");
+        const sectionDiv = document.createElement("div");
+        sectionDiv.innerHTML = `<h3>${sectionName.toUpperCase()} Images</h3>`;
+        
+        let row;
+        data.forEach((img, idx) => {
+        if (idx % 3 === 0) {
+            row = document.createElement("div");
+            row.className = "image-row";
+            sectionDiv.appendChild(row);
+        }
+        const card = document.createElement("div");
+        card.className = "image-card";
+        card.innerHTML = `
+            <img src="${img.path}" alt="${img.name}">
+            <p><b>${img.name}</b></p>
+            <p>Green: [${img.g[0]}, ${img.g[1]}]</p>
+            <p>Red: [${img.r[0]}, ${img.r[1]}]</p>
+        `;
+        row.appendChild(card);
+        });
+    
+        container.appendChild(sectionDiv);
+    }
+    renderGallery("jpg", images.jpg);
+    renderGallery("tif", images.tif);
+    renderGallery("chosen", images.chosen);
+    </script>
+    
+    <style>
+    .image-row {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    .image-card {
+        text-align: center;
+        width: 30%;
+        margin-bottom: 10px;
+    }
+    .image-card img {
+        max-width: 100%;
+    }
+    .image-card:hover {
+        transform: scale(1.05);
+        transition: 0.2s ease;
+    }
+    </style>
+
+  </div>
+</body>
+</html>
