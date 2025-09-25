@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project 2</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+  <header class="heroSection">
+    <img class="heroBg" src="./media/bg.jpg" alt="background" />
+    <div class="introduction">
+      <h1>Project 2 — Fun with Filters and Frequencies!</h1>
+      <p class="lead">(26 Sep 2025) Playing around with image filters and frequencies to create cool effects.</p>
+      <a class="credit" href="https://unsplash.com/" target="_blank" rel="noopener noreferrer">Background image source: Unsplash</a>
+    </div>
+  </header>
+
+  <nav class="navBar" aria-label="Primary">
+    <ul>
+      <li><a href="#p1">Part 1 — Filters</a></li>
+      <li><a href="#p2">Part 2 — Frequencies</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+    <section id="p1" class="section card">
+      <h2>Part 1 — Fun with Filters</h2>
+
+      <article class="subsection">
+        <h3>1.1 Convolutions from Scratch!</h3>
+        <p>I wrote the convolution function in two ways: one using four nested loops and another using two loops with NumPy. Both methods add zero padding around the image edges to handle boundaries properly.</p>
+      
+        <div class="code-sample">
+          <pre><code>
+          # 4 for loops (basic approach)
+          for i in range(h):
+              for j in range(w):
+                  for ki in range(kh):
+                      for kj in range(kw):
+                          result[i, j] += padded[i+ki, j+kj] * kernel[ki, kj]
+            
+          # 2 for loops (using NumPy to speed things up)
+          for i in range(h):
+              for j in range(w):
+                  result[i, j] = np.sum(padded[i:i+kh, j:j+kw] * kernel)
+          </code></pre>
+        </div>
+      
+        <figure class="figure">
+          <img src="./media/part1_1/cropped.png" alt="Convolution results showing original image, box filter, Dx, and Dy"/>
+          <figcaption>Results of different filters: original image, 9×9 box filter, Dx filter (finds vertical edges), and Dy filter (finds horizontal edges).</figcaption>
+        </figure>
+      
+        <h4>Comparing with Built-in Function</h4>
+        <p>The above implementation gives the same results as <code>scipy.signal.convolve2d</code> using the same settings upon checking with np.allclose() which returned True.</p>
+      
+        <div class="performance-comparison">
+          <h4>Runtime Analysis:</h4>
+          <ul>
+            <li><strong>4-loop version:</strong> Slowest because it has lots of nested Python loops, increasing overhead significantly</li>
+            <li><strong>2-loop version:</strong> Faster than the 4-loop version since NumPy does the inner calculations more efficiently</li>
+            <li><strong>scipy version:</strong> Fastest because it's written in C</li>
+          </ul>
+        </div>
+      
+        <h4>Edge Handling:</h4>
+        <p>At image edges, we need to add extra pixels. I used <strong>zero-padding</strong>, while scipy uses <strong>mirror padding</strong> (copying edge pixels). Zero-padding is easier to implement but can create dark edges, while mirror padding looks more natural.</p>
+      
+        <h4>What Each Filter Does:</h4>
+        <ul>
+          <li><strong>Box Filter (9×9):</strong> Smooths the image by averaging nearby pixels (blur effect)</li>
+          <li><strong>Dx = [[-1, 0, 1]]:</strong> Finds vertical edges (where brightness changes left-to-right)</li>
+          <li><strong>Dy = [[-1], [0], [1]]:</strong> Finds horizontal edges (where brightness changes up-down)</li>
+        </ul>
+      </article>
+
+      <hr/>
+
+      <article class="subsection">
+        <h3>1.2 Finite Difference Operator</h3>
+        <p>I used basic edge-finding filters on the cameraman image. The math behind this is calculating derivatives: Dx = [[-1, 0, 1]] for horizontal changes and Dy = [[-1], [0], [1]] for vertical changes. Then I combined them using the formula:</p>
+        
+        <p><strong>Gradient Magnitude = √(Dx² + Dy²)</strong></p>
+        
+        <figure class="figure-row">
+          <img src="./media/part1_2/cameraman.png" alt="Original Cameraman" style="height: 300px;"/>
+        </figure>
+        <figcaption style="display: flex; justify-content: center;">Original Cameraman Image</figcaption>
+      
+        <figure class="figure-row">
+          <img src="./media/part1_2/p12_grad_x.png" alt="Partial derivative in x direction" style="height: 250px;"/>
+          <img src="./media/part1_2/p12_grad_y.png" alt="Partial derivative in y direction" style="height: 250px;" />
+          <img src="./media/part1_2/p12_grad_mag.png" alt="Gradient magnitude" style="height: 250px;"/>
+          <img src="./media/part1_2/p12_edges.png" alt="Binarized edge image" style="height: 250px;"/>
+        </figure>
+        <figcaption>Left to right: horizontal edges, vertical edges, combined edges, final edge image (threshold=60).</figcaption>
+      
+        <h4>Picking the Right Threshold:</h4>
+        <p>I chose threshold = 60 after trying different values. This value catches the important edges (camera, tripod, buildings) while ignoring most of the noise in the background (grass, sky, etc).</p>
+      
+        <h4>Results:</h4>
+        <p>The Dx filter shows vertical objects like the camera and tripod really well, while the Dy filter catches horizontal objects like building roofs. Combining them gives us all the relevant edges and the final cleaned-up version shows just the main shapes.</p>
+      </article>
+
+      <hr/>
+
+      <article class="subsection">
+        <h3>1.3 Derivative of Gaussian (DoG) Filter</h3>
+        <p>The basic edge detection in Part 1.2 was too noisy, so we will combine it with Gaussian blurring to smooth it out in this part. I made 2D Gaussian filters using <code>cv2.getGaussianKernel()</code>, then created special Derivative of Gaussian (DoG) filters by combining the Gaussian with the edge filters.</p>
+      
+        <figure class="figure-row">
+          <img src="./media/part1_3/dogxy.png" alt="DoG filter in x and y direction" />
+        </figure>
+        <figcaption>Derivative of Gaussian filters: DoGx (left) and DoGy (right).</figcaption>
+      
+        <figure class="figure-row">
+          <img src="./media/part1_3/p13_results.png" alt="part1.3 results" />
+        </figure>
+        <figcaption>Comparison: basic edge detection (left), blur then find edges (middle), and DoG filter (right).</figcaption>
+      
+        <h4>What we can see:</h4>
+        <ul>
+          <li><strong>Less Noise:</strong> Blurring first gets rid of a lot of the unwanted noise in the edge images</li>
+          <li><strong>Same Results:</strong> Doing blurring followed by edge detection gives almost the same result as using the DoG filter directly</li>
+        </ul>
+      
+        <h4>Why This Works Better:</h4>
+        <p>Basic edge detection using finite difference operator applies simple derivative filters in the x and y directions to compute gradients, and then thresholds the gradient magnitude to detect edges. While this successfully captures strong edges, it also responds to small brightness fluctuations (like the ones in the grass patch in cameraman), making it very sensitive to noise and producing cluttered results. The DoG method improves this by first blurring the image at two different scales and subtracting the results, which suppresses small high-frequency details while preserving meaningful structures. Hence, DoG acts like a noise filter that emphasizes important edges while ignoring irrelevant variations, giving cleaner and more reliable edge maps compared to the raw finite difference approach.</p>
+      </article>
+    </section>
+
+    <hr>
+
+    <section id="p2" class="section card">
+      <h2>Part 2 — Fun with Frequencies!</h2>
+      <p class="section-desc">Making images sharper, creating hybrid images, and blending photos seamlessly.</p>
+    
+      <article class="subsection">
+        <h3>2.1 Image "Sharpening"</h3>
+        <p>In this part, we try out "unsharp masking" - a way to make images look sharper by adding back high-frequency details. This can be represented by:</p>
+        
+        <p><strong>Sharpened = Original + α × (Original - Blurred)</strong></p>
+        
+        <p>Where α controls how much sharpening to apply, and (Original - Blurred) gives us the high-frequency details.</p>
+    
+        <figure class="figure">
+          <img src="./media/part2_1/taj_comparison.png" alt="Unsharp masking process with Taj Mahal" />
+          <figcaption>Sharpening process: original image, blurred version, high frequencies (offset +128 for display), and final sharpened result (α=1.5, σ=2.0).</figcaption>
+        </figure>
+    
+        <h4>Testing the Limits:</h4>
+        <p>Now I try sharpening an image after making it blurry to see if I could get the original back.</p>
+
+        <figure class="figure">
+          <img src="./media/part2_1/smore_comparison.png" alt="Comparison of original, blurred, and re-sharpened images" />
+          <figcaption>Test: original sharp image, artificially blurred version, and sharpening result. Some improvement but can't get back to original quality.</figcaption>
+        </figure>
+        
+        <p><strong>Why You Can't Perfectly Fix Blurry Images:</strong></p>
+        <p>Blurring acts like a low-pass filter. It smooths out high frequencies, which are where the details live. Once those high frequencies are removed, the pixels no longer contain that detail. Sharpening can only take what’s left in the blurred image and boost it and it can’t generate the missing information. That’s why the sharpened result looks “crisper” than the blurry one, but still nowhere near the original. On top of that, sharpening can't distinguish between detail and noise: any noise in the blurred image gets boosted too, which can make the result look grainy or unnatural.</p>
+      </article>
+    
+      <article class="subsection">
+        <h3>2.2 Hybrid Images</h3>
+        <p>In this part, I created hybrid images that look different depending on how far away you are. This is done by combining the low frequencies from one image (what you see from far away) with the high frequencies from another image (what you see up close).</p>
+    
+        <h4>Derek + Nutmeg:</h4>
+        <figure class="figure">
+          <img src="./media/part2_2/comparison.png" alt="Complete hybrid process showing original images, filtered components, FFT analysis, and final hybrid" />
+          <figcaption>Complete process for Derek + Nutmeg hybrid (σ₁=3.0, σ₂=8.0): top shows images and filtered parts, bottom shows frequency analysis proving the method works.</figcaption>
+        </figure>
+    
+        <h4>More Hybrid Examples:</h4>
+        <div class="imageSection">
+          <figure>
+            <img src="./media/part2_2/hybrid2.png" alt="Laptop typewriter hybrid showing original images and result" />
+            <figcaption>Laptop + Typewriter hybrid</figcaption>
+          </figure>
+          <figure>
+            <img src="./media/part2_2/hybrid1.png" alt="Second custom hybrid example" />
+            <figcaption>Taylor Swift and Travis Kelce hybrid</figcaption>
+          </figure>
+        </div>
+    
+        <h4>Choosing the Right Settings:</h4>
+        <p>I experimented with different sigma values. Lower σ₁ (1-4) keeps fine details for close viewing, while higher σ₂ (6-12) creates smooth base images for far viewing. The difference between these values controls how the hybrid effect works.</p>
+      </article>
+    
+      <article class="subsection">
+        <h3>2.3 Gaussian & Laplacian Stacks</h3>
+        <p>I built image "stacks" - different versions of the same image with different amounts of blur. Gaussian stacks have progressive blurring, while Laplacian stacks store the differences between blur levels (different frequency ranges).</p>
+    
+        <figure class="figure">
+          <img src="./media/part2_3/appleGstack.png" alt="Apple Gaussian stack showing 6 levels of progressive blurring" />
+          <figcaption>Apple Gaussian stack: 6 levels showing how details gradually disappear with more blur.</figcaption>
+        </figure>
+    
+        <figure class="figure">
+          <img src="./media/part2_3/appleLstack.png" alt="Apple Laplacian stack showing frequency bands" />
+          <figcaption>Apple Laplacian stack: each level shows different detail sizes, with the final level being the blurriest base.</figcaption>
+        </figure>
+      </article>
+    
+      <article class="subsection">
+        <h3>2.4 Multiresolution Blending (a.k.a. the oraple!)</h3>
+        <p>In this part, I learned how to blend images without visible seams using multi-resolution blending. The key idea is to blend different detail levels separately, using progressively blurrier masks for each level.</p>
+
+        <h4>Classic Apple + Orange Blend:</h4>
+        <figure class="figure">
+          <img src="./media/part2_3/appleGstack.png" alt="Apple Gaussian stack" />
+          <img src="./media/part2_3/orangeGstack.png" alt="Orange Gaussian stack" />
+          <img src="./media/part2_3/appleLstack.png" alt="Apple Laplacian stack" />
+          <img src="./media/part2_3/orangeLstack.png" alt="Orange Laplacian stack" />
+          <img src="./media/part2_3/oraple.png" alt="Final blended result" />
+          <figcaption>The complete Oraple process: Apple blur levels, Orange blur levels, Apple detail levels, Orange detail levels, and final seamless blend.</figcaption>
+        </figure>
+    
+        <h4>My Custom Blends:</h4>
+        <div class="image-card">
+          <img src="./media/part2_3/minionOfLiberty.png" alt="Minion statue of liberty blend" />
+          <p>Minion + Statue of Liberty using automatic object detection to create the mask.</p>
+        </div>
+        <div class="image-card">
+          <img src="./media/part2_3/waterkiwi.png" alt="Watermelon kiwi circular blend" />
+          <p>Watermelon + Kiwi with a circular blend area.</p>
+        </div>
+
+        <h4>How I Made the Irregular Mask:</h4>
+        <p>For the Minion + Statue of Liberty blend, I used a computer vision technique:</p>
+
+        <div class="mask-methods">
+          <p><strong>Automatic Object Detection (GrabCut):</strong></p>
+          <p>With GrabCut, I started by drawing a rough rectangle around the object I wanted to keep. The algorithm then automatically analyzed the region and separated the object from the background, estimating the exact boundaries. To refine the result, I let it run multiple times (about 5 iterations), which improved accuracy by gradually tightening around the true edges. Afterward, I cleaned up small errors and feathered the edges so the cutout looked natural and smooth. Finally, the extracted object could be resized or moved around to fit better into a new composition. However, the blended picture still doesn't look at good (you can see the hand of the original statue sticking out and things like that), but the idea is cool.</p>
+        </div>
+      </article>
+    </section>
+  </main>
+
+</body>
+</html>
