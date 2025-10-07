@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project 3A - Image Warping and Mosaicing</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+  <header class="heroSection">
+    <img class="heroBg" src="./media/bg3.jpg" alt="background" />
+    <div class="introduction">
+      <h1>Project 3A — Image Warping and Mosaicing</h1>
+      <p class="lead">(October 2025) Computing Homographies and Stitching Images</p>
+      <a class="credit" href="https://unsplash.com/" target="_blank" rel="noopener noreferrer">Background image source: Unsplash</a>
+    </div>
+  </header>
+
+  <nav class="navBar" aria-label="Primary">
+    <ul>
+      <li><a href="#part1">Part 1 - Shoot Pictures</a></li>
+      <li><a href="#part2">Part 2 - Recover Homographies</a></li>
+      <li><a href="#part3">Part 3 - Warp Images</a></li>
+      <li><a href="#part4">Part 4 - Create Mosaics</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+    <section id="part1" class="section card">
+      <h2>Part 1 — Shooting the Pictures</h2>
+      <p>Here are the pictures I took for the image mosaic. I tried to fix the Center of Projection (COP) while making sure that there is significant overlap between the pictures.</p>
+
+      <article class="subsection">
+        <h3>Image Set 1:</h3>
+        <figure class="figure-row">
+          <img src="./media/bridge1.jpeg" alt="Bridge left view" style="height: 250px;"/>
+          <img src="./media/bridge2.jpeg" alt="Bridge right view" style="height: 250px;"/>
+        </figure>
+        <figcaption>Golden Gate Bridge!</figcaption>
+      </article>
+
+      <article class="subsection">
+        <h3>Image Set 2:</h3>
+        
+        <figure class="figure-row">
+          <img src="./media/sea1.jpeg" alt="Harbour view 1" style="height: 250px;"/>
+          <img src="./media/sea2.jpeg" alt="Habours view 2" style="height: 250px;"/>
+        </figure>
+        <figcaption>Harbor images I forgot where I got them from</figcaption>
+      </article>
+    </section>
+
+    <hr>
+
+    <section id="part2" class="section card">
+      <h2>Part 2 — Recovering Homographies</h2>
+      
+      <article class="subsection">
+        <p>A homography is a matrix that maps points from one image plane to another. This can be represented as:</p>
+        
+        <p style="text-align: center; font-size: 1.1em; margin: 20px 0;">
+          <strong>p' = Hp</strong>
+        </p>
+        
+        <p>Where:</p>
+        <ul>
+          <li><strong>p = [x, y, 1]</strong> is a point in the first image (homogeneous coordinates)</li>
+          <li><strong>p' = [x', y', 1]</strong> is the corresponding point in the second image</li>
+          <li><strong>H</strong> is the 3×3 homography matrix with 8 degrees of freedom (9 entries, but we normalize so h₃₃ = 1)</li>
+        </ul>
+
+        <pre style="text-align: center;">
+        H = [h11  h12  h13]
+            [h21  h22  h23]
+            [h31  h32   1 ]
+        </pre>
+
+        <p>When we multiply H by point p in homogeneous coordinates, we get:</p>
+        
+        <pre style="text-align: center;">
+        [x']   [h11  h12  h13] [x]   [h11x + h12y + h13]
+        [y'] = [h21  h22  h23] [y] = [h21x + h22y + h23]
+        [w']   [h31  h32   1 ] [1]   [h31x + h32y +  1 ]
+        </pre>
+
+        <p>In homogeneous coordinates, we need to divide to convert back to Cartesian coordinates:</p>
+        
+        <pre style="text-align: center;">
+        x' = (h11x + h12y + h13) / (h31x + h32y + 1)
+        y' = (h21x + h22y + h23) / (h31x + h32y + 1)
+        </pre>
+
+        <p>We rearrange the equations above:</p>
+
+        <p><strong>For the x' equation:</strong></p>
+        <pre>
+        x'(h31x + h32y + 1) = h11x + h12y + h13
+        
+        Expanding:
+        x'h31x + x'h32y + x' = h11x + h12y + h13
+        
+        Rearranging (moving everything to one side):
+        h11x + h12y + h13 + 0·h21 + 0·h22 + 0·h23 - x'h31x - x'h32y = x'
+        -h11x - h12y - h13 + 0·h21 + 0·h22 + 0·h23 + x'h31x + x'h32y = -x'
+        
+        Which gives us the first row of our constraint matrix:
+        [-x  -y  -1   0   0   0   x·x'  y·x'  x']
+        </pre>
+
+        <p><strong>We do the same for the y' equation, which gives us the second row:</strong></p>
+        <pre>
+        [ 0   0   0  -x  -y  -1   x·y'  y·y'  y']
+        </pre>
+
+        <p>For <strong>n</strong> point correspondences, we stack these equations to form a system. Each point pair gives us 2 equations, so we get a 2n × 9 matrix system:</p>
+        
+        <pre style="font-size: 0.9em;">
+        [x1  y1  1   0   0   0  -x'1*x1  -x'1*y1  -x'1]
+        [0   0   0   x1  y1  1  -y'1*x1  -y'1*y1  -y'1]
+        [x2  y2  1   0   0   0  -x'2*x2  -x'2*y2  -x'2]
+        [0   0   0   x2  y2  1  -y'2*x2  -y'2*y2  -y'2]  ×  [h11, h12, h13, h21, h22, h23, h31, h32, 1]ᵀ = 0
+        [⋮   ⋮   ⋮   ⋮   ⋮   ⋮    ⋮       ⋮        ⋮  ]
+        [xn  yn  1   0   0   0  -x'n*xn  -x'n*yn  -x'n]
+        [0   0   0   xn  yn  1  -y'n*xn  -y'n*yn  -y'n]
+        </pre>
+
+        <p>This is a <strong>homogeneous system Ah = 0</strong>, where:</p>
+        <ul>
+          <li><strong>A</strong> is our 2n × 9 matrix containing the stacked equations</li>
+          <li><strong>h = [h11, h12, h13, h21, h22, h23, h31, h32, 1]ᵀ</strong> contains the 8 unknowns</li>
+        </ul>
+
+        <p>Since we have 2n equations but only 8 unknowns, we can solve it when n >= 4 to find the h that best satisfies all equations simultaneously.</p>
+      </article>
+    </section>
+
+    <hr>
+
+    <section id="part3" class="section card">
+      <h2>Part 3 — Warping the Images</h2>
+      
+      <article class="subsection">
+        <h3>Inverse Warping Strategy</h3>
+        <p>To avoid holes in the output image, I used <strong>inverse warping</strong>. First, the four corners of the input image are transformed using the homography matrix H to determine their new positions in the output image. From these transformed corners, we compute a bounding box that ensures all warped pixels will fit within the output image dimensions. 
+        
+        Next, for each pixel in the output image, we compute its corresponding location in the input image by applying the inverse of the homography (H−1). This step allows us to determine which input pixels contributed to that output position.
+            
+        Finally we sample the input image at that location using either Nearest Neighbor or Bilinear interpolation.</p>
+      </article>
+
+      <article class="subsection">
+        <h3>Implementation 1: Nearest Neighbor Interpolation</h3>
+        <p>When the source coordinate falls between pixels (e.g., at x=10.3, y=5.7), we:</p>
+        <ol>
+            <li>Round the coordinate to the nearest integer pixel location (e.g., (10, 6))</li>
+            <li>Directly use the color value of that single nearest pixel</li>
+            <li>Assign this value to the output pixel</li>
+        </ol>
+
+        <h3>Implementation 2: Bilinear Interpolation</h3>
+        <p>When the source coordinate falls between pixels (e.g., at x=10.3, y=5.7), we:</p>
+        <ol>
+          <li>Find the 4 surrounding pixels</li>
+          <li>Compute weights based on distance: closer pixels get higher weights</li>
+          <li>Take weighted average</li>
+        </ol>
+      </article>
+
+      <article class="subsection">
+        <h3>Rectification Steps</h3>
+        <p>Before creating full mosaics, I tested my computeH and warping code by rectifying images (taking photos of rectangular objects at an angle and making them rectangular).</p>
+
+        <figure class="figure">
+          <img src="./media/library_comp.png" alt="Window rectification" />
+          <figcaption>Doe Library Windows</figcaption>
+        </figure>
+
+        <figure class="figure">
+          <img src="./media/painting_comp.png" alt="Painting rectification" />
+          <figcaption>Art piece</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="./media/painting_zoomed.png" alt="Painting zoomed in" />
+          <figcaption>Art piece, zoomed in</figcaption>
+        </figure>
+        <h4>Comparison between interpolation methods:</h4>
+        <p>The bilinear interpolation produces smoother results with no visible pixelation, while the nearest neighbor method produced more jagged edges.</p>
+      </article>
+    </section>
+
+    <hr>
+
+    <section id="part4" class="section card">
+      <h2>Part 4 — Creating Image Mosaics</h2>
+      
+      <article class="subsection">
+        <h3>Overview of Mosaicing Pipeline</h3>
+        <ol>
+          <li><strong>Select correspondences:</strong> Pick matching points in overlapping regions</li>
+          <li><strong>Compute homography:</strong> Calculate transformation from image 2 to image 1's frame</li>
+          <li><strong>Determine canvas size:</strong> Find bounding box that fits both images</li>
+          <li><strong>Warp image 2:</strong> Transform it into alignment with image 1</li>
+          <li><strong>Blend images:</strong> Smoothly transition between them in overlap region</li>
+        </ol>
+      </article>
+
+
+      <article class="subsection">
+       <h3>Blending Strategy: Centerline Gradient</h3>
+       <p>The centerline gradient blending method creates a smooth transition between two overlapping images by gradually adjusting their relative contributions across the overlap region. A sigmoid-based mask is used to blend from one image to the other, ensuring that pixels near the centerline receive an even mix. This approach minimizes visible seams when the input images have consistent lighting and exposure. We chose this simpler technique over more complex Laplacian or Gaussian pyramid blending since our images already share similar brightness and color conditions, and the result mosaics looks decent.</p> 
+        </article>
+
+      <article class="subsection">
+        <h3>Mosaic 1: Golden Gate Bridge Panorama</h3>
+        
+        <figure class="figure-row">
+          <img src="./media/bridge1.jpeg" alt="Bridge left" style="height: 250px;"/>
+          <img src="./media/bridge2.jpeg" alt="Bridge right" style="height: 250px;"/>
+        </figure>
+        <figcaption>Pictures of Golden Gate Bridge I took over the weekends</figcaption>
+
+        <figure class="figure">
+          <img src="./media/golden_gate.png" alt="Golden Gate Bridge mosaic result" />
+          <figcaption>Final blended panorama.</figcaption>
+        </figure>
+      </article>
+
+      <article class="subsection">
+        <h3>Mosaic 2: Harbour Scene</h3>
+        
+        <figure class="figure-row">
+          <img src="./media/sea1.jpeg" alt="Sea left" style="height: 250px;"/>
+          <img src="./media/sea2.jpeg" alt="Sea right" style="height: 250px;"/>
+        </figure>
+        <figcaption>Source images for indoor panorama</figcaption>
+
+        <figure class="figure">
+          <img src="./media/harbour_mosaic.png" alt="Indoor mosaic result" />
+          <figcaption>Final blended panorama</figcaption>
+        </figure>
+      </article>
+    </section>
+
+  </main>
+
+</body>
+</html>
