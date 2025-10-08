@@ -132,6 +132,18 @@
         </ul>
 
         <p>Since we have 2n equations but only 8 unknowns, we can solve it when n >= 4 to find the h that best satisfies all equations simultaneously.</p>
+        
+        <h3>Correspondences:</h3>
+        <figure class="figure-row">
+        <img src="./media/correspondence.png" alt="Selecting correspondence pairs"/>
+        </figure>
+        <p><strong>Homography matrix H: </strong></p>
+        <pre style="text-align: center;">
+        [ 2.54942169e-01  3.63351292e-02  2.17025064e+03]
+        [-3.82953000e-01  7.50323286e-01  5.10625048e+02]
+        [-1.78249183e-04 -1.97385185e-05  1.00000000e+00]
+        </pre>
+        
       </article>
     </section>
 
@@ -185,7 +197,7 @@
           <figcaption>Art piece, zoomed in</figcaption>
         </figure>
         <h4>Comparison between interpolation methods:</h4>
-        <p>The bilinear interpolation produces smoother results with no visible pixelation, while the nearest neighbor method produced more jagged edges.</p>
+        <p>The bilinear interpolation produces smoother results with no visible pixelation, while the nearest neighbor method produced more jagged edges. However, nearest neighbor interpolation was more straightforward in terms of implementation, and its also a lot faster than bilinear interpolation due to less computations required.</p>
       </article>
     </section>
 
@@ -207,8 +219,8 @@
 
 
       <article class="subsection">
-       <h3>Blending Strategy: Centerline Gradient</h3>
-       <p>The centerline gradient blending method creates a smooth transition between two overlapping images by gradually adjusting their relative contributions across the overlap region. A sigmoid-based mask is used to blend from one image to the other, ensuring that pixels near the centerline receive an even mix. This approach minimizes visible seams when the input images have consistent lighting and exposure. We chose this simpler technique over more complex Laplacian or Gaussian pyramid blending since our images already share similar brightness and color conditions, and the result mosaics looks decent.</p> 
+       <h3>Blending: Centerline Gradient</h3>
+       <p>This creates a smooth transition between two overlapping images by gradually adjusting their relative contributions across the overlap region. A sigmoid-based mask is used to blend from one image to the other, ensuring that pixels near the centerline receive an even mix. This approach minimizes visible seams when the input images have consistent lighting and exposure. I chose this simpler technique over the more complex Laplacian or Gaussian pyramid blending we've learnt the last project since our images already share similar brightness and color conditions, and the result mosaic pictures look decent.</p> 
         </article>
 
       <article class="subsection">
