@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Project 3A - Image Warping and Mosaicing</title>
+  <title>Project 3 - [Auto]Stitching Photo Mosaics</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="index.css" />
 </head>
@@ -11,52 +11,55 @@
   <header class="heroSection">
     <img class="heroBg" src="./media/bg3.jpg" alt="background" />
     <div class="introduction">
-      <h1>Project 3A — Image Warping and Mosaicing</h1>
-      <p class="lead">(October 2025) Computing Homographies and Stitching Images</p>
+      <h1>Project 3 — [Auto]Stitching Photo Mosaics</h1>
+      <p class="lead">(17 October 2025) Part A: Manual Stitching | Part B: Automatic Stitching</p>
       <a class="credit" href="https://unsplash.com/" target="_blank" rel="noopener noreferrer">Background image source: Unsplash</a>
     </div>
   </header>
 
   <nav class="navBar" aria-label="Primary">
     <ul>
-      <li><a href="#part1">Part 1 - Shoot Pictures</a></li>
-      <li><a href="#part2">Part 2 - Recover Homographies</a></li>
-      <li><a href="#part3">Part 3 - Warp Images</a></li>
-      <li><a href="#part4">Part 4 - Create Mosaics</a></li>
+      <li><a href="#parta">Part A: Manual Stitching</a></li>
+      <li><a href="#partb">Part B: Automatic Stitching</a></li>
     </ul>
   </nav>
 
   <main class="content">
-    <section id="part1" class="section card">
-      <h2>Part 1 — Shooting the Pictures</h2>
-      <p>Here are the pictures I took for the image mosaic. I tried to fix the Center of Projection (COP) while making sure that there is significant overlap between the pictures.</p>
+    <!-- PART A SECTION -->
+    <section id="parta" class="section card">
+      <h1 style="text-align: center; font-size: 2.5em; margin-bottom: 40px;">Part A — Manual Image Mosaicing</h1>
+      
+      <article id="part1" class="subsection">
+        <h2>Part A.1 — Shooting the Pictures</h2>
+        <p>Here are the pictures I took for the image mosaic. I tried to fix the Center of Projection (COP) while making sure that there is significant overlap between the pictures.</p>
 
-      <article class="subsection">
         <h3>Image Set 1:</h3>
         <figure class="figure-row">
           <img src="./media/bridge1.jpeg" alt="Bridge left view" style="height: 250px;"/>
           <img src="./media/bridge2.jpeg" alt="Bridge right view" style="height: 250px;"/>
         </figure>
         <figcaption>Golden Gate Bridge!</figcaption>
-      </article>
 
-      <article class="subsection">
         <h3>Image Set 2:</h3>
-        
         <figure class="figure-row">
           <img src="./media/sea1.jpeg" alt="Harbour view 1" style="height: 250px;"/>
           <img src="./media/sea2.jpeg" alt="Habours view 2" style="height: 250px;"/>
         </figure>
         <figcaption>Harbor images I forgot where I got them from</figcaption>
+
+        <h3>Image Set 3:</h3>
+        <figure class="figure-row">
+          <img src="./media/engineer1.jpeg" alt="Building left" style="height: 250px;"/>
+          <img src="./media/engineer2.jpeg" alt="Building right" style="height: 250px;"/>
+        </figure>
+        <figcaption>Pictures of our engineering library</figcaption>
       </article>
-    </section>
 
-    <hr>
+      <hr>
 
-    <section id="part2" class="section card">
-      <h2>Part 2 — Recovering Homographies</h2>
-      
-      <article class="subsection">
+      <article id="part2" class="subsection">
+        <h2>Part A.2 — Recovering Homographies</h2>
+        
         <p>A homography is a matrix that maps points from one image plane to another. This can be represented as:</p>
         
         <p style="text-align: center; font-size: 1.1em; margin: 20px 0;">
@@ -143,25 +146,20 @@
         [-3.82953000e-01  7.50323286e-01  5.10625048e+02]
         [-1.78249183e-04 -1.97385185e-05  1.00000000e+00]
         </pre>
-        
       </article>
-    </section>
 
-    <hr>
+      <hr>
 
-    <section id="part3" class="section card">
-      <h2>Part 3 — Warping the Images</h2>
-      
-      <article class="subsection">
+      <article id="part3" class="subsection">
+        <h2>Part A.3 — Warping the Images</h2>
+        
         <h3>Inverse Warping Strategy</h3>
         <p>To avoid holes in the output image, I used <strong>inverse warping</strong>. First, the four corners of the input image are transformed using the homography matrix H to determine their new positions in the output image. From these transformed corners, we compute a bounding box that ensures all warped pixels will fit within the output image dimensions. 
         
         Next, for each pixel in the output image, we compute its corresponding location in the input image by applying the inverse of the homography (H−1). This step allows us to determine which input pixels contributed to that output position.
             
         Finally we sample the input image at that location using either Nearest Neighbor or Bilinear interpolation.</p>
-      </article>
 
-      <article class="subsection">
         <h3>Implementation 1: Nearest Neighbor Interpolation</h3>
         <p>When the source coordinate falls between pixels (e.g., at x=10.3, y=5.7), we:</p>
         <ol>
@@ -177,9 +175,7 @@
           <li>Compute weights based on distance: closer pixels get higher weights</li>
           <li>Take weighted average</li>
         </ol>
-      </article>
 
-      <article class="subsection">
         <h3>Rectification Steps</h3>
         <p>Before creating full mosaics, I tested my computeH and warping code by rectifying images (taking photos of rectangular objects at an angle and making them rectangular).</p>
 
@@ -199,14 +195,12 @@
         <h4>Comparison between interpolation methods:</h4>
         <p>The bilinear interpolation produces smoother results with no visible pixelation, while the nearest neighbor method produced more jagged edges. However, nearest neighbor interpolation was more straightforward in terms of implementation, and its also a lot faster than bilinear interpolation due to less computations required.</p>
       </article>
-    </section>
 
-    <hr>
+      <hr>
 
-    <section id="part4" class="section card">
-      <h2>Part 4 — Creating Image Mosaics</h2>
-      
-      <article class="subsection">
+      <article id="part4" class="subsection">
+        <h2>Part A.4 — Creating Image Mosaics</h2>
+        
         <h3>Overview of Mosaicing Pipeline</h3>
         <ol>
           <li><strong>Select correspondences:</strong> Pick matching points in overlapping regions</li>
@@ -215,15 +209,10 @@
           <li><strong>Warp image 2:</strong> Transform it into alignment with image 1</li>
           <li><strong>Blend images:</strong> Smoothly transition between them in overlap region</li>
         </ol>
-      </article>
 
-
-      <article class="subsection">
        <h3>Blending: Centerline Gradient</h3>
        <p>This creates a smooth transition between two overlapping images by gradually adjusting their relative contributions across the overlap region. A sigmoid-based mask is used to blend from one image to the other, ensuring that pixels near the centerline receive an even mix. This approach minimizes visible seams when the input images have consistent lighting and exposure. I chose this simpler technique over the more complex Laplacian or Gaussian pyramid blending we've learnt the last project since our images already share similar brightness and color conditions, and the result mosaic pictures look decent.</p> 
-        </article>
 
-      <article class="subsection">
         <h3>Mosaic 1: Golden Gate Bridge Panorama</h3>
         
         <figure class="figure-row">
@@ -236,9 +225,7 @@
           <img src="./media/golden_gate.png" alt="Golden Gate Bridge mosaic result" />
           <figcaption>Final blended panorama.</figcaption>
         </figure>
-      </article>
 
-      <article class="subsection">
         <h3>Mosaic 2: Harbour Scene</h3>
         
         <figure class="figure-row">
@@ -251,9 +238,7 @@
           <img src="./media/harbour_mosaic.png" alt="Indoor mosaic result" />
           <figcaption>Final blended panorama</figcaption>
         </figure>
-      </article>
 
-      <article class="subsection">
         <h3>Mosaic 3: Engineering Building</h3>
         
         <figure class="figure-row">
@@ -269,6 +254,146 @@
       </article>
     </section>
 
+    <hr style="margin: 80px 0; border: 0.5px solid">
+
+    <!-- PART B SECTION -->
+    <section id="partb" class="section card">
+      <h1 style="text-align: center; font-size: 2.5em; margin-bottom: 40px;">Part B — Automatic Feature Matching & Stitching</h1>
+
+      <article id="partb1" class="subsection">
+        <h2>Part B.1 — Harris Corner Detection</h2>
+        <p>Harris corner detection identifies locations in an image where there are significant changes in intensity in multiple directions. These corners are ideal for matching because they're distinct across different viewpoints.</p>
+        
+        <h3>How It Works</h3>
+        <p>For each pixel, the algorithm:</p>
+        <ol>
+          <li>Computes image gradients (how intensity changes in x and y directions)</li>
+          <li>Forms the Harris matrix from these gradients</li>
+          <li>Calculates a "corner strength" based on the eigenvalues of this matrix</li>
+          <li>Identifies local maxima as corner points</li>
+        </ol>
+        
+        <p>The corner strength function is: <strong>f = (λ₁λ₂)/(λ₁ + λ₂)</strong>, where λ₁ and λ₂ are eigenvalues. High values in both directions indicate a corner.</p>
+
+        <h3>Results: Raw Harris Corners</h3>
+        <figure class="figure-row">
+          <img src="./media/sea2.jpeg" alt="Original image" style="height: 250px;"/>
+          <img src="./media/3B_results/harris_corners.png" alt="Raw Harris corners" style="height: 250px;"/>
+          <figcaption>Left: Original Image | Right: All detected Harris corners</figcaption> 
+        </figure>
+
+        <h3>Adaptive Non-Maximal Suppression (ANMS)</h3>
+        <p>However, the problem with Harris corners is that the points are clustered all over the place (as you can seen from the image above). For image stitching, we need well-distributed features across the entire image.</p>
+        
+        <p><strong>ANMS Solution:</strong> For each corner, compute its suppression radius (the distance to the nearest significantly stronger corner). Then select the corners with the largest suppression radius.</p>
+
+        <figure class="figure-row">
+          <img src="./media/3B_results/harris_corners.png" alt="Raw Harris corners" style="height: 250px;"/>
+          <img src="./media/3B_results/anms_corners.png" alt="ANMS selected corners" style="height:250px;"/>
+          <figcaption>Left: All detected Harris corners | Right: 500 corners selected using ANMS.</figcaption>
+        </figure>
+
+        <h3>Comparison</h3>
+        <p>ANMS dramatically improves feature distribution. While raw Harris detection finds thousands of clustered corners, ANMS selects 500 well-distributed corners that cover the entire image, including regions with moderate corner strength.</p>
+      </article>
+
+      <hr>
+
+      <article id="partb2" class="subsection">
+        <h2>Part B.2 — Feature Descriptor Extraction</h2>
+        <p>A feature descriptor is a numerical representation of the local image appearance around each corner. It allows us to compare corners across different images and determine if they correspond to the same physical point.</p>
+
+        <h3>Multi-Scale Oriented Patches (MOPS)</h3>
+        <p>Following the paper, we extract simple yet effective descriptors:</p>
+        <ol>
+          <li><strong>Extract 40×40 window:</strong> Around each corner</li>
+          <li><strong>Downsample to 8×8:</strong> Sample every 5th pixel for robustness to localisation errors</li>
+          <li><strong>Normalise:</strong> Subtract mean and divide by standard deviation (makes descriptor invariant to lighting changes)</li>
+        </ol>
+
+        <h3>Extraction Process</h3>
+        <figure class="figure">
+          <img src="./media/3B_results/descriptor_extraction_process.png" alt="Descriptor extraction steps" />
+          <figcaption>Corner location → 40×40 window → 8×8 downsampled patch → Normalized descriptor</figcaption>
+        </figure>
+
+        <h3>Other Descriptors</h3>
+        <figure class="figure">
+          <img src="./media/3B_results/feature_descriptors.png" alt="Multiple feature descriptors" />
+          <figcaption>Sample features and their corresponding 8×8 descriptors</figcaption>
+        </figure>
+      </article>
+
+      <hr>
+
+      <article id="partb3" class="subsection">
+        <h2>Part B.3 — Feature Matching</h2>
+        <p>After finding the descriptors from two images, we have to determine which features correspond to each other. Just finding the nearest neighbor doesn't work well because the distributions of correct and incorrect matches overlap significantly. As suggested in the paper, we can instead use Lowe's Ratio Test.</p>
+
+        <h3>Lowe's Ratio Test</h3>
+        <p>For each feature in Image 1:</p>
+        <ol>
+          <li>Find the 1st nearest neighbor (1-NN) in Image 2 with distance d1</li>
+          <li>Find the 2nd nearest neighbor (2-NN) with distance d2</li>
+          <li>Compute ratio: r = d1 / d2</li>
+          <li>Accept match only if r <= 0.8 (threshold in paper)</li>
+        </ol>
+
+        <p>Correct matches are distinctive since the best match is much better than the second-best (lower ratio).</p>
+
+        <h3>Matched Features</h3>
+        <figure class="figure">
+          <img src="./media/3B_results/feature_matches.png" alt="Feature matches between images" />
+          <figcaption>Matched features between image pairs using ratio test with threshold 0.8</figcaption>
+        </figure>
+      </article>
+
+      <hr>
+
+      <article id="partb4" class="subsection">
+        <h2>Part B.4 — RANSAC for Robust Homography</h2>
+        <p>However, even with the ratio test, some incorrect matches (outliers) remain (as you can see from the purple colored match on top and blue colored match below in the previous image). If we compute the homography using all matches, these will interfere with the result.</p>
+
+        <h3>RANSAC (Random Sample Consensus)</h3>
+        <p>RANSAC is an algorithm that fits a model to data containing outliers:</p>
+        
+        <ol>
+          <li>Randomly select 4 matches</li>
+          <li>Compute homography H from these 4 points</li>
+          <li>For all matches, compute reprojection error using H</li>
+          <li>Matches with error <= threshold (5 pixels) are inliers</li>
+          <li>Try 5000 different random samples</li>
+          <li>Select H with most inliers</li>
+          <li>Recompute H using all inliers</li>
+        </ol>
+
+        <p>If we randomly sample 4 matches, and most matches are correct, we'll likely get 4 correct matches. These will produce a good homography that many other correct matches will agree with. In comparison, bad samples (containing outliers) produce poor homographies that few matches agree with.</p>
+
+        <h3>RANSAC Results</h3>
+        <figure class="figure">
+          <img src="./media/3B_results/ransac_inliers_outliers.png" alt="RANSAC inliers and outliers" />
+          <figcaption><strong>Green lines:</strong> Inliers. <strong>Red lines:</strong> Outliers.</figcaption>
+        </figure>
+
+        <h3>Automatic Mosaics</h3>
+        <p>Using the homography from RANSAC inliers, we can now automatically stitch images.</p>
+
+        <h4>Mosaic 1: Harbor Scene</h4>
+        <figure class="figure">
+          <img src="./media/3B_results/sea_comparison.png" alt="Harbor manual vs automatic" />
+        </figure>
+
+        <h4>Mosaic 2: Engineering Library</h4>
+        <figure class="figure">
+          <img src="./media/3B_results/engineer_comparison.png" alt="Manual vs Automatic comparison" />
+        </figure>
+
+        <h4>Mosaic 3: Golden Gate Bridge</h4>
+        <figure class="figure">
+          <img src="./media/3B_results/bridge_comparison.png" alt="Bridge manual vs automatic" />
+        </figure>
+      </article>
+    </section>
   </main>
 
 </body>
