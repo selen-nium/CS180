@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project 5A – Diffusion Models</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+  <header class="heroSection">
+    <img class="heroBg" src="./media/bg.jpg" alt="background" />
+    <div class="introduction">
+      <h1>Project 5A — The Power of Diffusion Models!</h1>
+      <p class="lead">(25 November 2025) Part 0: Setup | Part 1: Sampling Loops</p>
+      <a class="credit" href="https://unsplash.com/" target="_blank" rel="noopener noreferrer">Background image source: Unsplash</a>
+    </div>
+  </header>
+
+  <nav class="navBar" aria-label="Primary">
+    <ul>
+      <li><a href="#part0">Part 0: Setup</a></li>
+      <li><a href="#part1">Part 1: Sampling Loops</a></li>
+    </ul>
+  </nav>
+
+  <main class="content">
+    <!-- PART 0 -->
+    <section id="part0" class="section card">
+      <h1 style="text-align: center; font-size: 2.5em; margin-bottom: 40px;">Part 0 — Setup</h1>
+      <article class="subsection">
+        <h2>Play with the Model using Your Own Text Prompts!</h2>
+        <p>
+          I stuck to the default prompts given and generated their embeddings using the provided Huggingface clusters.
+        </p>
+        <figure class="figure">
+          <img src="./media/part0/default_prompts.png" alt="ipynb output" />
+          <figcaption>Screenshot of the default prompts</figcaption>
+        </figure>
+      </article>
+
+      <hr>
+
+      <article class="subsection">
+        <h2>Sampling from the Model</h2>
+        <p>
+          Using the prompts 'a photo of a hipster barista', 'an oil painting of a snowy mountain village' and 'a high quality photo', I generated the following images with seed = 180.
+        </p>
+
+        <h3>Sample Outputs</h3>
+        <figure class="figure">
+          <img src="./media/part0/default_prompt_outputs.png" alt="ipynb output" />
+          <figcaption>Three outputs from prompt list</figcaption>
+        </figure>
+      </article>
+    </section>
+
+    <hr style="margin: 80px 0; border: 0.5px solid">
+
+    <!-- PART 1 -->
+    <section id="part1" class="section card">
+      <h1 style="text-align: center; font-size: 2.5em; margin-bottom: 40px;">Part 1 — Sampling Loops</h1>
+
+      <!-- 1.1 Forward Process -->
+      <article id="part11" class="subsection">
+        <h2>1.1 — Implementing the Forward Process</h2>
+        <p>
+          I implemented <code>forward(im, t)</code>, which simulates the forward diffusion process by adding Gaussian noise at timestep t. Using the cumulative noise schedule alphas_cumprod from the DeepFloyd scheduler, the noisy image is computed as
+        </p>
+        <pre style="font-size:0.9em;">x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * eps,</pre>
+        <p>
+          where <code>eps ~ N(0, I)</code>. I applied this to the Campanile image resized to 64×64 and visualized increasing noise levels at timesteps t = [250, 500, 750].
+        </p>
+
+        <figure class="figure-row">
+          <img src="./media/part1/forward_t250.png" alt="Campanile t=250" style="height: 150px;"/>
+          <img src="./media/part1/forward_t500.png" alt="Campanile t=500" style="height: 150px;"/>
+          <img src="./media/part1/forward_t750.png" alt="Campanile t=750" style="height: 150px;"/>
+          <figcaption>Campanile after forward diffusion at timesteps t=250, 500, and 750.</figcaption>
+        </figure>
+      </article>
+
+      <hr>
+
+      <!-- 1.2 Classical Denoising -->
+      <article id="part12" class="subsection">
+        <h2>1.2 — Classical Denoising with Gaussian Blur</h2>
+        <p>
+          I tried to denoise the noisy Campanile images using only classical image processing. I applied torchvision.transforms.functional.gaussian_blur with different kernel sizes and sigmas. Getting good results was quite difficult with this approach alone.
+        </p>
+
+        <figure class="figure">
+          <img src="./media/part1/gaussian.png" alt="gaussian blur filtering" />
+        </figure>
+      </article>
+
+      <hr>
+
+      <!-- 1.3 One-Step Denoising -->
+      <article id="part13" class="subsection">
+        <h2>1.3 — One-Step Denoising with the Pretrained UNet</h2>
+        <p>
+          The result from the previous part is not as desirable as seen from the output images. Next I used <code>stage_1.unet</code> to estimate the noise at a given timestep. The model outputs 6 channels; I treat the first three as the noise estimate and the latter three as variance. Using the provided embedding for <strong>"a high quality photo"</strong>, I implemented a single reverse diffusion step that reconstructs an estimate of the original Campanile.
+        </p>
+
+        <figure class="figure">
+          <img src="./media/part1/one_step.png" alt="one step denoise" />
+        </figure>
+        <p>
+          Compared to Gaussian blur, the UNet recovers the global structure much better, but at high timesteps the reconstruction is still somewhat blurry.
+        </p>
+      </article>
+
+      <hr>
+
+      <!-- 1.4 Iterative Denoising -->
+      <article id="part14" class="subsection">
+        <h2>1.4 — Iterative Denoising with Strided Timesteps</h2>
+        <p>
+          I created a strided schedule <code>strided_timesteps = [990, 960, ..., 0]</code> with stride 30 and configured the scheduler via <code>stage_1.scheduler.set_timesteps</code>. Then I implemented <code>iterative_denoise(im_noisy, i_start)</code>, which repeatedly applies the DDPM update rule using the UNet noise estimates and the helper <code>add_variance</code> function.
+        </p>
+
+        <figure class="figure-row">
+          <img src="./media/part1/iter_loop_90.png" alt="Noisy t=90" style="height: 180px;"/>
+          <img src="./media/part1/iter_loop_240.png" alt="Noisy t=240" style="height: 180px;"/>
+          <img src="./media/part1/iter_loop_390.png" alt="Noisy t=390" style="height: 180px;"/>
+          <img src="./media/part1/iter_loop_540.png" alt="Noisy t=540" style="height: 180px;"/>
+          <img src="./media/part1/iter_loop_690.png" alt="Noisy t=690" style="height: 180px;"/>
+          <figcaption>Every 5th image in the iterative denoising loop starting from i_start=10.</figcaption>
+        </figure>
+
+        <figure class="figure-row">
+          <img src="./media/part1/original_campanile.png" alt="Original Campanile" style="height: 130px;"/>
+          <img src="./media/part1/iter_final.png" alt="Iteratively denoised" style="height: 130px;"/>
+          <img src="./media/part1/one_step_compare.png" alt="One-step denoised" style="height: 130px;"/>
+          <img src="./media/part1/gauss_compare.png" alt="Gaussian blurred" style="height: 130px;"/>
+          <figcaption>Original vs iterative denoising vs one-step vs Gaussian blur.</figcaption>
+        </figure>
+      </article>
+
+      <hr>
+
+      <!-- 1.5 Sampling -->
+      <article id="part15" class="subsection">
+        <h2>1.5 — Diffusion Model Sampling</h2>
+        <p>
+          With <code>iterative_denoise</code> in place, I can sample images from scratch by starting from pure Gaussian noise <code>x_T ~ N(0, I)</code> and running the loop from <code>i_start = 0</code> all the way to the end. I conditioned on the prompt <strong>"a high quality photo"</strong> and generated five random samples.
+        </p>
+
+        <figure class="figure-row">
+          <img src="./media/part1/sample5.png" alt="Sample 1" style="height: 180px;"/>
+          <img src="./media/part1/sample4.png" alt="Sample 2" style="height: 180px;"/>
+          <img src="./media/part1/sample3.png" alt="Sample 3" style="height: 180px;"/>
+          <img src="./media/part1/sample2.png" alt="Sample 4" style="height: 180px;"/>
+          <img src="./media/part1/sample1.png" alt="Sample 5" style="height: 180px;"/>
+        </figure>
+        <p>
+          These images are somewhat recognizable but the quality is not good.
+        </p>
+      </article>
+
+      <hr>
+
+      <!-- 1.6 CFG -->
+      <article id="part16" class="subsection">
+        <h2>1.6 — Classifier-Free Guidance (CFG)</h2>
+        <p>
+          I implemented <code>iterative_denoise_cfg</code>, which runs the UNet twice at each timestep: once with the conditional prompt, and once with an empty prompt embedding (the unconditional estimate). The final noise estimate is
+        </p>
+        <pre style="font-size:0.9em;"> eps_cfg = eps_uncond + gamma * (eps_cond - eps_uncond)</pre>
+        <p>
+          where I used <strong>gamma = 7</strong> as recommended. I then sampled five new images of "a high quality photo".
+        </p>
+
+        <figure class="figure-row">
+          <img src="./media/part1/cfg5.png" alt="Sample 1 with CFG" style="height: 180px;"/>
+          <img src="./media/part1/cfg4.png" alt="Sample 2 with CFG" style="height: 180px;"/>
+          <img src="./media/part1/cfg3.png" alt="Sample 3 with CFG" style="height: 180px;"/>
+          <img src="./media/part1/cfg2.png" alt="Sample 4 with CFG" style="height: 180px;"/>
+          <img src="./media/part1/cfg1.png" alt="Sample 5 with CFG" style="height: 180px;"/>
+        </figure>
+        <p>
+          The results are much better than those from section 1.5, demonstrating the effectiveness of CFG for improving image quality.
+        </p>
+      </article>
+
+      <hr>
+
+      <!-- 1.7 Image-to-image / SDEdit -->
+      <article id="part17" class="subsection">
+        <h2>1.7 — Image-to-Image Translation (SDEdit)</h2>
+        <p>
+          To perform SDEdit I first used the <code>forward</code> function to add noise to the original Campanile and my custom images up to a timestep corresponding to different <code>i_start</code> values. Then I applied <code>iterative_denoise_cfg</code> starting from that timestep. This follows the SDEdit algorithm, which allows us to make edits to existing images by noising and denoising them.
+        </p>
+
+        <h3>Campanile Edits</h3>
+        <figure class="figure-row">
+          <img src="./media/part1/sdedit6.png" alt="SDEdit i_start=1" style="height: 100px;"/>
+          <img src="./media/part1/sdedit5.png" alt="SDEdit i_start=3" style="height: 100px;"/>
+          <img src="./media/part1/sdedit4.png" alt="SDEdit i_start=5" style="height: 100px;"/>
+          <img src="./media/part1/sdedit3.png" alt="SDEdit i_start=7" style="height: 100px;"/>
+          <img src="./media/part1/sdedit2.png" alt="SDEdit i_start=10" style="height: 100px;"/>
+          <img src="./media/part1/sdedit1.png" alt="SDEdit i_start=20" style="height: 100px;"/>
+        </figure>
+
+        <h3>My Photos - Golden Gate Bridge</h3>
+        <figure class="figure-row">
+          <img src="./media/part1/sdedit_bridge6.png" alt="Bridge i_start=1" style="height: 100px;"/>
+          <img src="./media/part1/sdedit_bridge5.png" alt="Bridge i_start=3" style="height: 100px;"/>
+          <img src="./media/part1/sdedit_bridge4.png" alt="Bridge i_start=5" style="height: 100px;"/>
+          <img src="./media/part1/sdedit_bridge3.png" alt="Bridge i_start=7" style="height: 100px;"/>
+          <img src="./media/part1/sdedit_bridge2.png" alt="Bridge i_start=10" style="height: 100px;"/>
+          <img src="./media/part1/sdedit_bridge1.png" alt="Bridge i_start=20" style="height: 100px;"/>
+        </figure>
+
+        <h3>My Photos - Egg Plushie</h3>
+        <figure class="figure-row">
+          <img src="./media/part1/sdedit_egg6.png" alt="Egg i_start=1" style="height: 100px;"/>
+          <img src="./media/part1/sdedit_egg5.png" alt="Egg i_start=3" style="height: 100px;"/>
+          <img src="./media/part1/sdedit_egg4.png" alt="Egg i_start=5" style="height: 100px;"/>
+          <img src="./media/part1/sdedit_egg3.png" alt="Egg i_start=7" style="height: 100px;"/>
+          <img src="./media/part1/sdedit_egg2.png" alt="Egg i_start=10" style="height: 100px;"/>
+          <img src="./media/part1/sdedit_egg1.png" alt="Egg i_start=20" style="height: 100px;"/>
+        </figure>
+      </article>
+
+      <hr>
+
+      <!-- 1.7.1 Hand Drawn and Web -->
+      <article id="part171" class="subsection">
+        <h2>1.7.1 — Editing Hand-Drawn and Web Images</h2>
+        <p>
+          This procedure works particularly well if we start with a nonrealistic image (e.g. painting, a sketch, some scribbles) and project it onto the natural image manifold.
+        </p>
+
+        <h3>Web Image - Avocado (Original)</h3>
+        <figure class="figure">
+          <img src="./media/part1/avocado.png" alt="Avocado original" style="height: 200px;"/>
+        </figure>
+        <h3>Web Image - Avocado (Edits)</h3>
+        <figure class="figure">
+          <img src="./media/part1/avocado_edits.png" alt="Avocado edits" style="height: 200px;"/>
+        </figure>
+
+        <h3>Hand-drawn Image - Stickman (Original)</h3>
+        <figure class="figure">
+          <img src="./media/part1/MyImage1.png" alt="Stickman original" style="height: 200px;"/>
+        </figure>
+        <h3>Hand-drawn Image - Stickman (Edits)</h3>
+        <figure class="figure">
+          <img src="./media/part1/handdrawn1.png" alt="Stickman edits" style="height: 200px;"/>
+        </figure>
+
+        <h3>Hand-drawn Image - Cat and Apple Tree (Original)</h3>
+        <figure class="figure">
+          <img src="./media/part1/MyImage2.png" alt="Cat and tree original" style="height: 200px;"/>
+        </figure>
+        <h3>Hand-drawn Image - Cat and Apple Tree (Edits)</h3>
+        <figure class="figure">
+          <img src="./media/part1/handdrawn2.png" alt="Cat and tree edits" style="height: 200px;"/>
+        </figure>
+      </article>
+
+      <hr>
+
+      <!-- 1.7.2 Inpainting -->
+      <article id="part172" class="subsection">
+        <h2>1.7.2 — Inpainting</h2>
+        <p>
+          For inpainting I implemented <code>inpaint(original_image, mask, ...)</code> following the RePaint paper. At each iteration I first ran a CFG denoising step to get a new latent image, then overwrote the <em>unmasked</em> region with the forward-noised original image, following
+        </p>
+        <pre style="font-size:0.9em;"> x_t  ←  m * x_t + (1 - m) * forward(x_orig, t)</pre>
+        <p>
+          where <code>m</code> is 1 inside the editable region. This keeps everything outside the mask consistent with the original while letting the model hallucinate inside.
+        </p>
+
+        <h3>Campanile Inpainting</h3>
+        <figure class="figure">
+          <img src="./media/part1/campanile_inpainted.png" alt="Campanile inpainting process" />
+        </figure>
+
+        <h3>Chosen Images</h3>
+        <figure class="figure-row">
+          <img src="./media/part1/bridge_inpainted.png" alt="Bridge inpainting" style="height: 200px;"/>
+          <img src="./media/part1/egg_inpainted.png" alt="Egg inpainting" style="height: 200px;"/>
+        </figure>
+      </article>
+
+      <hr>
+
+      <!-- 1.7.3 Text-conditional image2image -->
+      <article id="part173" class="subsection">
+        <h2>1.7.3 — Text-Conditional Image-to-Image Translation</h2>
+        <p>
+          I repeated the SDEdit pipeline but replaced the original prompt "a high quality photo" with other prompts such as <strong>"a rocket ship"</strong> to add more control over the generation process. This is no longer pure projection to the natural image manifold, but also adds control using language.
+        </p>
+
+        <figure class="figure-row">
+          <img src="./media/part1/campanile_prompt.png" alt="Rocket" style="height: 200px;"/>
+          <img src="./media/part1/bridge_prompt.png" alt="snow village" style="height: 300px;"/>
+          <img src="./media/part1/egg_prompt.png" alt="pencil" style="height: 300px;"/>
+        </figure>
+      </article>
+
+      <hr>
+
+      <!-- 1.8 Visual Anagrams -->
+      <article id="part18" class="subsection">
+        <h2>1.8 — Visual Anagrams</h2>
+        <p>
+          To create a visual anagram I implemented <code>make_flip_illusion</code> following the Visual Anagrams paper.
+          At each step I:
+        </p>
+        <ol>
+          <li>Computed CFG noise for the current latent with prompt p_1 ("an oil painting of an old man").</li>
+          <li>Flipped the latent vertically, computed CFG noise with prompt p_2 ("an oil painting of people around a campfire"), then flipped the noise back.</li>
+          <li>Averaged the two noise estimates and applied a DDPM reverse step.</li>
+        </ol>
+        <p>
+          The resulting image looks like one prompt when upright and like the other when flipped.
+        </p>
+
+        <h3>Old man / Campfire</h3>
+        <figure class="figure">
+          <div class="anagram-container">
+            <img src="./media/part1/anagram1.png" alt="Old man and campfire" style="height: 260px;">
+            <div class="anagram-caption">Campfire</div>
+          </div>
+        </figure>
+
+
+        <h3>Snowy Village / Old man</h3>
+        <figure class="figure">
+          <div class="anagram-container">
+            <img src="./media/part1/anagram2.png" alt="Old man and snowy village" style="height: 260px;">
+            <div class="anagram-caption">Old man</div>
+          </div>
+        </figure>
+
+      </article>
+
+      <hr>
+
+      <!-- 1.9 Hybrid Images -->
+      <article id="part19" class="subsection">
+        <h2>1.9 — Hybrid Images</h2>
+        <p>
+          Finally I implemented <code>make_hybrids</code> to combine the low frequencies of one prompt with the high frequencies of another, following the Factorized Diffusion paper. I computed CFG noise estimates epsilon_1 and epsilon_2 for prompts p_1 and p_2, blurred them with
+          <code>torchvision.transforms.functional.gaussian_blur</code> (kernel size 33, sigma 2),
+          and formed
+        </p>
+        <pre style="font-size:0.9em;">eps = lowpass(eps1) + highpass(eps2) = blur(eps1) + (eps2 - blur(eps2))</pre>
+        <p>
+          Using this composite noise in the reverse step yields a single image that resembles one concept from afar but reveals another up close.
+        </p>
+
+        <h3>Skull / Waterfall</h3>
+        <figure class="figure">
+          <div class="hybrid-container">
+            <img src="./media/part1/hybrid_waterfall_skull.png"
+                alt="Hybrid image of skull and waterfall" style="height: 300px;">
+
+            <!-- Caption when NOT hovered (default: waterfall, far view) -->
+            <div class="hybrid-caption">waterfall</div>
+
+            <!-- Caption when hovered (zoomed out: skull, near view) -->
+            <div class="hybrid-caption-hover">skull</div>
+          </div>
+        </figure>
+
+        <h3>Rocket / Pencil</h3>
+        <figure class="figure">
+          <div class="hybrid-container">
+            <img src="./media/part1/hybrid_rocket_pencil.png"
+                alt="Hybrid image of rocket and pencil" style="height: 300px;">
+
+            <div class="hybrid-caption">rocket</div>
+            <div class="hybrid-caption-hover">pencil</div>
+          </div>
+        </figure>
+      </article>
+    </section>
+  </main>
+
+</body>
+</html>
