@@ -13,6 +13,7 @@
     <div class="introduction">
       <h1>Project 5A — The Power of Diffusion Models!</h1>
       <p class="lead">(25 November 2025) Part 0: Setup | Part 1: Sampling Loops</p>
+      <p class="lead">(Follow-up) Project 5B: UNet Denoisers, Flow Matching, and Class-Conditional Generation</p>
       <a class="credit" href="https://unsplash.com/" target="_blank" rel="noopener noreferrer">Background image source: Unsplash</a>
     </div>
   </header>
@@ -21,6 +22,7 @@
     <ul>
       <li><a href="#part0">Part 0: Setup</a></li>
       <li><a href="#part1">Part 1: Sampling Loops</a></li>
+      <li><a href="#part2b">Project 5B: UNet Denoisers & Flows</a></li>
     </ul>
   </nav>
 
@@ -378,6 +380,276 @@
             <div class="hybrid-caption-hover">pencil</div>
           </div>
         </figure>
+      </article>
+    </section>
+
+    <hr style="margin: 80px 0; border: 0.5px solid">
+
+    <!-- PROJECT 5B: UNET DENOISERS & FLOW MATCHING -->
+    <section id="part2b" class="section card">
+      <h1 style="text-align: center; font-size: 2.5em; margin-bottom: 40px;">Project 5B — Flow Matching from Scratch!</h1>
+
+      <!-- PART 1: SINGLE-STEP DENOISING -->
+      <article id="part5b1" class="subsection">
+        <h2>Part 1 — Training a Single-Step Denoising UNet</h2>
+        <!-- 1.1 Implementing the UNet -->
+        <article id="part5b11" class="subsection">
+          <h3>1.1 — Implementing the UNet</h3>
+          <p>
+            I implemented the UNet following this architecture:
+          </p>
+          <figure class="figure">
+            <img src="./media/proj5b/unconditional_arch.png" alt="Unconditional UNet" />
+            <figcaption>Unconditional UNet</figcaption>
+          </figure>
+
+          <p>
+            and the tensor operations are defined as follows:
+          </p>
+          <figure class="figure">
+            <img src="./media/proj5b/atomic_ops_new.png" alt="standark UNet ops" />
+            <figcaption>Standard UNet operations</figcaption>
+          </figure>
+        </article>
+
+        <hr>
+
+        <!-- 1.2 Training -->
+        <article id="part5b12" class="subsection">
+          <h3>1.2.1 — Training the Denoiser</h3>
+          <p>
+            I trained the UNet to denoise MNIST digits with noise level σ = 0.5. The noising process followed z = x + σε, where ε ~ N(0, I). I used the Adam optimizer with learning rate 1e-4, batch size 256, and trained for 5 epochs on the MNIST training set.
+          </p>
+
+          <h4>Visualization of Noising Process</h4>
+          <figure class="figure">
+            <img src="./media/proj5b/noise_levels.png" alt="Noising process visualization" />
+            <figcaption>MNIST digits with increasing noise levels: σ = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0]</figcaption>
+          </figure>
+
+          <h4>Training Loss Curve</h4>
+          <figure class="figure">
+            <img src="./media/proj5b/denoiser_training.png" alt="Training loss curve" />
+            <figcaption>Training loss over 5 epochs for the single-step denoiser</figcaption>
+          </figure>
+
+          <h4>Denoising Results</h4>
+          <figure class="figure-row">
+            <div>
+              <img src="./media/proj5b/part121epoch1.png" alt="Results after epoch 1" style="height: 200px;"/>
+              <p style="text-align: center;">After Epoch 1</p>
+            </div>
+            <div>
+              <img src="./media/proj5b/part121epoch5.png" alt="Results after epoch 5" style="height: 200px;"/>
+              <p style="text-align: center;">After Epoch 5</p>
+            </div>
+          </figure>
+          <p>
+            After 5 epochs, the denoiser successfully recovers clean digits from noisy inputs with σ = 0.5.
+          </p>
+        </article>
+
+        <hr>
+
+        <!-- 1.2.2 Out-of-Distribution Testing -->
+        <article id="part5b122" class="subsection">
+          <h3>1.2.2 — Out-of-Distribution Testing</h3>
+          <p>
+            I tested the trained denoiser on different noise levels σ = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0].
+          </p>
+
+          <figure class="figure">
+            <img src="./media/proj5b/part122.png" alt="Out-of-distribution testing" />
+            <figcaption>Denoising results on various noise levels. The model performs best at σ = 0.5 (its training distribution) and degrades gracefully for other noise levels.</figcaption>
+          </figure>
+        </article>
+
+        <hr>
+
+        <!-- 1.2.3 Denoising Pure Noise -->
+        <article id="part5b123" class="subsection">
+          <h3>1.2.3 — Denoising Pure Noise</h3>
+          <p>
+            To test if the denoiser could perform generative tasks, I trained it to denoise pure Gaussian noise (ε ~ N(0, I)) into clean digits. This is much more challenging than denoising partially corrupted images.
+          </p>
+
+          <h4>Training Loss</h4>
+          <figure class="figure">
+            <img src="./media/proj5b/part123loss.png" alt="Pure noise training loss" />
+            <figcaption>Training loss for denoising pure noise</figcaption>
+          </figure>
+
+          <h4>Results</h4>
+          <figure class="figure-row">
+            <div>
+              <img src="./media/proj5b/denoiser_sigma05_epoch1.png" alt="Pure noise epoch 1" style="height: 200px;"/>
+              <p style="text-align: center;">After Epoch 1</p>
+            </div>
+            <div>
+              <img src="./media/proj5b/denoiser_sigma05_epoch5.png" alt="Pure noise epoch 5" style="height: 200px;"/>
+              <p style="text-align: center;">After Epoch 5</p>
+            </div>
+          </figure>
+
+          <h4>Analysis</h4>
+          <p>
+            The model can't seem to generate recognizable digits from pure noise. This might be because with MSE loss, the model learns to predict the mean of the training distribution. Since MNIST contains all digits 0-9 with roughly equal probability, the model outputs a blurry average of all possible digits rather than any specific digit.
+          </p>
+        </article>
+      </article>
+
+      <hr style="margin: 80px 0; border: 0.5px solid">
+
+      <!-- PART 2: FLOW MATCHING -->
+      <article id="part5b2" class="subsection">
+        <h2>Part 2 — Training a Flow Matching Model</h2>
+        <!-- 2.1 Time-Conditioned UNet -->
+        <article id="part5b21" class="subsection">
+          <h3>2.1 — Adding Time Conditioning to UNet</h3>
+          <p>
+            I adjusted the model based on the given architecture here:
+          </p>
+          <figure class="figure">
+            <img src="./media/proj5b/conditional_arch_fm.png" alt="Conditioned UNet" />
+            <figcaption>Conditioned UNet</figcaption>
+          </figure>
+        </article>
+
+        <hr>
+
+        <!-- 2.2 Training -->
+        <article id="part5b22" class="subsection">
+          <h3>2.2 — Training the Time-Conditioned UNet</h3>
+          <p>
+            I trained the time-conditioned UNet for 20 epochs using:
+          </p>
+          <ul>
+            <li>Batch size: 64</li>
+            <li>Optimizer: Adam with initial learning rate 1e-2</li>
+            <li>Learning rate scheduler: Exponential decay with gamma = 0.1^(1/num_epochs)</li>
+            <li>Loss: L2 loss between predicted flow and true flow (x<sub>1</sub> - x<sub>0</sub>)</li>
+          </ul>
+
+          <figure class="figure">
+            <img src="./media/proj5b/part22loss.png" alt="Time-conditioned training loss" />
+            <figcaption>Training loss for the time-conditioned UNet over 20 epochs</figcaption>
+          </figure>
+        </article>
+
+        <hr>
+
+        <!-- 2.3 Sampling -->
+        <article id="part5b23" class="subsection">
+          <h3>2.3 — Sampling from the Time-Conditioned UNet</h3>
+          <p>
+            I implemented the sampling algorithm to generate digits from pure noise. Starting from x<sub>0</sub> ~ N(0, I), I iteratively apply the predicted flow to move toward the clean data distribution.
+          </p>
+
+          <h4>Sampling Results</h4>
+          <figure class="figure-row">
+            <div>
+              <img src="./media/proj5b/part23epoch1.png" alt="Sampling epoch 1" style="height: 200px;"/>
+              <p style="text-align: center;">After Epoch 1</p>
+            </div>
+            <div>
+              <img src="./media/proj5b/part23epoch5.png" alt="Sampling epoch 5" style="height: 200px;"/>
+              <p style="text-align: center;">After Epoch 5</p>
+            </div>
+            <div>
+              <img src="./media/proj5b/part23epoch10.png" alt="Sampling epoch 20" style="height: 200px;"/>
+              <p style="text-align: center;">After Epoch 10</p>
+            </div>
+          </figure>
+
+          <p>
+            By epoch 10, the model generates somewhat recognizable digits.
+          </p>
+        </article>
+      </article>
+
+      <hr style="margin: 80px 0; border: 0.5px solid">
+
+      <!-- PART 2.4: CLASS CONDITIONING -->
+      <article id="part5b24" class="subsection">
+        <article>
+          <h3>Part 2.4 — Adding Class Conditioning to UNet</h3>
+          <p>
+            To gain control over which digit is generated, I added class conditioning using one-hot vectors. The class vector c is processed through FCBlocks and combined with time conditioning via: activation = c * activation + t.
+          </p>
+          <p>
+            I implemented classifier-free guidance with dropout probability p<sub>uncond</sub> = 0.1, where 10% of training samples have the class vector set to zero to enable unconditional generation.
+          </p>
+        </article>
+
+        <hr>
+
+        <!-- 2.5 Training -->
+        <article id="part5b25" class="subsection">
+          <h3>2.5 — Training the Class-Conditioned UNet</h3>
+          <p>
+            I trained the class-conditioned UNet for 10 epochs using the same hyperparameters as the time-only model. Class conditioning allows much faster convergence.
+          </p>
+
+          <figure class="figure">
+            <img src="./media/proj5b/part25loss.png" alt="Class-conditioned training loss" />
+            <figcaption>Training loss for the class-conditioned UNet over 10 epochs</figcaption>
+          </figure>
+        </article>
+
+        <hr>
+
+        <!-- 2.6 Sampling with CFG -->
+        <article id="part5b26" class="subsection">
+          <h3>2.6 — Sampling from the Class-Conditioned UNet</h3>
+          <p>
+            I implemented classifier-free guidance (CFG) with γ = 5.0. At each sampling step, I compute both conditional and unconditional flow estimates and combine them as:
+          </p>
+          <pre style="font-size:0.9em;">flow = flow_uncond + γ * (flow_cond - flow_uncond)</pre>
+
+          <h4>Sampling Results</h4>
+          <figure class="figure">
+            <img src="./media/proj5b/part26epoch1.png" alt="Class-conditioned sampling epoch 1" />
+            <figcaption>Samples after Epoch 1 (4 instances of each digit 0-9)</figcaption>
+          </figure>
+
+          <figure class="figure">
+            <img src="./media/proj5b/part26epoch5.png" alt="Class-conditioned sampling epoch 5" />
+            <figcaption>Samples after Epoch 5</figcaption>
+          </figure>
+
+          <figure class="figure">
+            <img src="./media/proj5b/part26epoch10.png" alt="Class-conditioned sampling epoch 10" />
+            <figcaption>Samples after Epoch 10</figcaption>
+          </figure>
+
+          <p>
+            The class-conditioned model with CFG generates high-quality, diverse digits that are clearly distinguishable. The conditioning gives precise control over which digit to generate.
+          </p>
+        </article>
+
+        <hr>
+
+        <article class="subsection">
+          <h3>Training Without Learning Rate Scheduler</h3>
+          <p>
+            To simplify the training process, I attempted to maintain performance without the exponential learning rate scheduler. I compensated by:
+          </p>
+          <ul>
+            <li>Using a lower constant learning rate of 5e-3</li>
+            <li>Training for a few additional epochs to compensate</li>
+            <li>Monitoring validation loss more carefully</li>
+          </ul>
+
+          <figure class="figure">
+            <img src="./media/proj5b/noschedulerloss.png" alt="loss without scheduler" />
+            <figcaption>Training loss with constant learning rate</figcaption>
+          </figure>
+
+          <figure class="figure">
+            <img src="./media/proj5b/noschedulerepoch10.png" alt="Samples without scheduler" />
+            <figcaption>Sample quality remains high without the scheduler after appropriate training duration.</figcaption>
+          </figure>
+        </article>
       </article>
     </section>
   </main>
